@@ -1,105 +1,160 @@
 # Enterprise Structured Ingestion Firewall
 
-A beginner-friendly demo that classifies a customer-support message with a cloud LLM (Groq) and validates the structured result with Pydantic before returning it. The backend is FastAPI; the optional frontend is plain HTML/CSS/JavaScript.
+A small, beginner-friendly AI project. You type a customer-support message in a chat page, and the app:
 
-The "firewall" is the schema: whatever the model returns must match a fixed set of fields and allowed values, or it is rejected.
+1. **Week 1 – Understands it.** An LLM sorts the message into a fixed category (payment issue, order tracking, greeting…) and returns structured JSON. Pydantic checks that JSON before anything else uses it.
+2. **Week 2 – Answers it.** A second LLM call uses that checked JSON to write a helpful reply in Markdown, which the chat page displays.
 
-## How it works
+The "firewall" idea: the AI's output is not trusted until it passes a strict schema. If the model returns a category that doesn't exist or a missing field, the app rejects it.
+
+## What you will learn
+
+- Building an API with **FastAPI**
+- Calling a cloud LLM (**Groq**) from Python
+- Getting **structured output** from an LLM with **Instructor**
+- **Validating** data with **Pydantic**
+- Connecting a plain **HTML/CSS/JavaScript** frontend to a backend
+
+## Key words (quick glossary)
+
+| Word | Meaning in this project |
+|---|---|
+| **LLM** | Large Language Model, the AI that reads and writes text. We use one hosted by Groq. |
+| **API** | The backend URL the frontend sends messages to (`/api/analyze`). |
+| **FastAPI** | The Python library that runs our API. |
+| **Pydantic** | Checks that data has the right fields and allowed values. |
+| **Instructor** | Makes the LLM reply in a shape that matches our Pydantic model. |
+| **Schema** | The rules for what valid data looks like. |
+| **Intent** | What the user wants, e.g. `payment_issue`. |
+| **`.env` file** | A private file holding your API key. Never share or commit it. |
+| **venv** | A private Python environment just for this project. |
+
+## How a message flows through the app
 
 ```text
-Browser (frontend/)  ──POST /api/analyze {"message": "..."}──►  FastAPI (backend/app/main.py)
-                                                                  │
-                     1. IngestionRequest validates the input  ◄───┤  schemas/ingestion.py
-                     2. Groq LLM classifies via Instructor    ◄───┤  services/llm_service.py
-                     3. IngestionResult validates the output  ◄───┤  schemas/ingestion.py
-                     4. Local token estimate is added         ◄───┘  utils/token_counter.py
-                                                                  ▼
-                                                    validated JSON response
+ You type a message in the browser (frontend, port 5500)
+        │
+        ▼
+ POST /api/analyze  ──►  FastAPI backend (port 8000)
+                              │
+                              ├─ 1. Check the input        (schemas/ingestion.py)
+                              ├─ 2. WEEK 1: classify it    (services/llm_service.py)   ── LLM call #1
+                              │       └─ Pydantic validates the JSON
+                              ├─ 3. Count tokens (estimate) (utils/token_counter.py)
+                              └─ 4. WEEK 2: write a reply  (services/response_service.py) ── LLM call #2
+                              │
+        ◄──────── JSON: intent details + response_markdown
+        │
+ Chat page shows the reply, with "Detected Intent" details underneath
 ```
 
-Example: `"My payment was deducted twice. Please help urgently."` becomes
+## What you need
 
-```json
-{
-  "intent": "payment_issue",
-  "risk_profile": "high",
-  "priority": "high",
-  "requires_action": true,
-  "summary": "User reports a duplicate payment deduction and requests urgent assistance.",
-  "token_metadata": { "estimated_input_tokens": 10, "note": "Estimated locally; may differ from provider token counts." }
-}
-```
+- **Python 3.10 or newer** (check with `python --version`)
+- A free **Groq API key**: https://console.groq.com/keys
+- Internet connection
 
-## Requirements
+## Run it in 5 steps (Windows PowerShell)
 
-- Python 3.10+ (tested on 3.12)
-- A Groq API key: https://console.groq.com/keys
-- Internet access for the LLM request
+You need **two terminals**: one for the backend, one for the frontend.
 
-## Quick start (Windows PowerShell)
+### Step 1: Set up the backend (one time only)
 
 ```powershell
-# 1. Backend setup
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+You'll know the venv is active when your prompt starts with `(.venv)`.
+
+### Step 2: Add your API key (one time only)
+
+```powershell
 copy .env.example .env
-notepad .env          # set GROQ_API_KEY and GROQ_MODEL=openai/gpt-oss-120b
+notepad .env
+```
 
-# 2. Run tests
-pytest -q
+Make the file look like this, then save:
 
-# 3. Start the API (leave running)
+```env
+GROQ_API_KEY=gsk_your_real_key_here
+GROQ_MODEL=openai/gpt-oss-120b
+```
+
+> ⚠️ `.env.example` still says `llama-3.3-70b-versatile`. That model no longer exists on Groq, so **change it** to `openai/gpt-oss-120b`.
+
+### Step 3: Start the backend (Terminal 1)
+
+Still inside `backend`, with `(.venv)` showing:
+
+```powershell
 uvicorn app.main:app --reload --port 8000
 ```
 
-In a second terminal, from the project root:
+Check it at http://127.0.0.1:8000/health. You should see `{"status":"ok",...}`. Leave this terminal running.
+
+### Step 4: Start the frontend (Terminal 2)
+
+Open a **new** terminal in the **project root** (the folder that contains `backend` and `frontend`):
 
 ```powershell
 python -m http.server 5500 --bind 127.0.0.1 --directory frontend
-Start-Process http://127.0.0.1:5500
 ```
 
-On macOS/Linux, activate with `source .venv/bin/activate` and use `cp` instead of `copy`.
+### Step 5: Open the app
 
-> **Model note:** `.env.example` still lists `llama-3.3-70b-versatile`, which no longer exists on Groq and makes every request fail with a 502. Set `GROQ_MODEL=openai/gpt-oss-120b` (or another available model) in your `.env`.
+Go to http://127.0.0.1:5500. The sidebar should say **Backend Connected**. Click a suggested prompt or type your own message.
 
-## Further docs
+To stop the servers, press `Ctrl + C` in each terminal.
 
-| Doc | Covers |
-|---|---|
-| [backend/README.md](backend/README.md) | Detailed setup, API reference, code walkthrough, troubleshooting the `502` error |
-| [frontend/README.md](frontend/README.md) | Running the UI, changing the backend URL, how the page works |
+On macOS/Linux, use `source .venv/bin/activate` instead of `Activate.ps1`, and `cp` instead of `copy`.
 
-## What this demo does and does not do
+## Common problems
 
-- The LLM classifies the message into a fixed set of intents: `greeting`, `order_tracking`, `payment_issue`, `current_time`, `general_question`, `unknown`.
-- Instructor asks the model for a Pydantic-shaped result and retries up to 2 times if validation fails; Pydantic validates the final result.
-- `tiktoken` estimates input tokens with an approximate tokenizer. It is not Groq billing data.
-- It does **not** look up real orders or fetch the current time; it only classifies the request.
-- Schema validation checks structure and allowed values, not factual truth or prompt-injection safety.
-- No database is required.
+| What you see | Why | Fix |
+|---|---|---|
+| Page has no styling and says "Checking backend..." | Frontend server started from the wrong folder, or two servers on port 5500 | Stop all servers (`Ctrl + C`), start **one** from the project root, then press `Ctrl + F5` |
+| `404 File not found` on port 5500 | You ran `http.server` inside `backend` | Run it from the project root, or use `--directory ..\frontend` |
+| `{"detail":"Not Found"}` at http://127.0.0.1:8000/ | Normal: there is no `/` route | Use `/docs` or `/health` |
+| "Backend Disconnected" in the sidebar | Backend isn't running | Do Step 3 |
+| `502 LLM request failed` | Wrong key, or the model name doesn't exist | See [backend/README.md](backend/README.md#troubleshooting) |
+| `Activate.ps1 cannot be loaded` | PowerShell blocks scripts | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once |
 
-## Folder layout
+## Project map
 
 ```text
 enterprise-ingestion-firewall/
-├── backend/
+├── backend/                     ← Python API (see backend/README.md)
 │   ├── app/
-│   │   ├── main.py                  # FastAPI app and routes
-│   │   ├── config.py                # loads .env
-│   │   ├── schemas/ingestion.py     # request/result Pydantic models
-│   │   ├── services/llm_service.py  # prompt + Groq/Instructor call
-│   │   └── utils/token_counter.py   # tiktoken estimate
+│   │   ├── main.py              ← routes: /health and /api/analyze
+│   │   ├── config.py            ← reads your .env file
+│   │   ├── schemas/
+│   │   │   ├── ingestion.py     ← Week 1 data rules (input + intent result)
+│   │   │   └── assistant.py     ← Week 2 data rules (adds response_markdown)
+│   │   ├── services/
+│   │   │   ├── llm_service.py   ← Week 1: classify the message
+│   │   │   └── response_service.py ← Week 2: write the answer
+│   │   └── utils/token_counter.py ← estimates token count
 │   ├── tests/test_ingestion.py
-│   ├── .env.example
-│   ├── requirements.txt
-│   └── README.md
-├── frontend/
+│   ├── .env.example             ← copy this to .env
+│   └── requirements.txt
+├── frontend/                    ← chat page (see frontend/README.md)
 │   ├── index.html
 │   ├── style.css
-│   ├── script.js
-│   └── README.md
-└── README.md
+│   └── script.js
+└── README.md                    ← you are here
 ```
+
+## Good to know
+
+- Each message makes **two** LLM calls (classify, then answer).
+- The app does **not** really look up orders or reset passwords; it only classifies and gives advice.
+- Token counts are **estimates**, not what Groq bills.
+- Schema validation checks the **shape** of data, not whether the AI's answer is true.
+
+## Next reading
+
+- [backend/README.md](backend/README.md): how each Python file works, the API, tests, troubleshooting
+- [frontend/README.md](frontend/README.md): how the chat page works
