@@ -83,7 +83,7 @@ GROQ_API_KEY=gsk_your_real_key_here
 GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-> ⚠️ `.env.example` still says `llama-3.3-70b-versatile`. That model no longer exists on Groq, so **change it** to `openai/gpt-oss-120b`.
+> Only replace the API key. The model is already set. If you ever see `404 model_not_found`, the model was retired; see [backend/README.md](backend/README.md#troubleshooting) to pick another.
 
 ### Step 3: Start the backend (Terminal 1)
 
