@@ -163,7 +163,6 @@ enterprise-ingestion-firewall/
 │   ├── .env.example               ← copy this to .env
 │   └── requirements.txt
 ├── frontend-react/                ← React + Vite app (see frontend-react/README.md)
-├── frontend/                      ← older plain HTML/JS page (Weeks 1–2, no history)
 └── README.md                      ← you are here
 ```
 
@@ -179,4 +178,3 @@ enterprise-ingestion-firewall/
 
 - [backend/README.md](backend/README.md): each Python file, the API, the database, tests, troubleshooting
 - [frontend-react/README.md](frontend-react/README.md): how the React app is organized and connects to the API
-- [frontend/README.md](frontend/README.md): the older plain-JavaScript page
