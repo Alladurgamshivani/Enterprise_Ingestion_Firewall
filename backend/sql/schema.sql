@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
   content TEXT NOT NULL,

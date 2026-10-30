@@ -1,0 +1,34 @@
+import os
+
+from dotenv import load_dotenv
+from groq import Groq
+
+
+# Load variables from .env
+load_dotenv()
+
+# Get API key
+api_key = os.getenv("GROQ_API_KEY")
+
+if not api_key:
+    raise ValueError("GROQ_API_KEY not found in .env")
+
+
+# Create Groq client
+client = Groq(api_key=api_key)
+
+
+# Send request to the LLM
+response = client.chat.completions.create(
+    model="openai/gpt-oss-20b",
+    messages=[
+        {
+            "role": "user",
+            "content": "what is machine learning?"
+        }
+    ],
+)
+
+
+# Print the LLM response
+print(response.choices[0].message.content)

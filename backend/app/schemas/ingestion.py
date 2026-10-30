@@ -17,7 +17,7 @@ Priority = Literal["low", "medium", "high"]
 
 class IngestionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-
+# week 3 update
     session_id:str | None =Field(
         default=None,
         min_length=1,
